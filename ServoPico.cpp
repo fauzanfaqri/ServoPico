@@ -14,7 +14,7 @@ bool ServoPico::attach(uint8_t pin, uint16_t minUs, uint16_t maxUs, uint16_t fre
   _channel = pwm_gpio_to_channel(_pin);
 
   uint32_t clkHz = clock_get_hz(clk_sys); // default: 125 MHz
-  _top = clkHz / freqHz / 1000;           // Top untuk 1 kHz = clkHz / 1000
+  _top = clkHz / freqHz / 1000;           // hitung nilai wrap
   pwm_set_wrap(_slice, _top - 1);
   pwm_set_clkdiv(_slice, 1.0f);
   pwm_set_enabled(_slice, true);
@@ -40,7 +40,7 @@ void ServoPico::write(int16_t angle) {
   setPWM(_lastUs);
 }
 
-void ServoPico::writeMicroseconds(uint16_t us) {
+void ServoPico::writeMicroseconds(int32_t us) {
   us = constrain(us, _minUs, _maxUs);
   _lastUs = us;
   _lastAngle = map((int32_t)us, _minUs, _maxUs, 0, 180);
@@ -59,8 +59,9 @@ bool ServoPico::attached() const {
   return _isAttached;
 }
 
-void ServoPico::setPWM(uint16_t us) {
+void ServoPico::setPWM(int32_t us) {
   if (!_isAttached) return;
+  us = constrain(us, _minUs, _maxUs);
   uint32_t clkHz = clock_get_hz(clk_sys);
   uint32_t cycles = (clkHz / 1000000) * us; // convert us to cycle
   uint16_t level = (cycles * _top) / (clkHz / 50); // pwm frequency = 50Hz
